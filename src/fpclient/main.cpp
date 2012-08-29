@@ -31,10 +31,12 @@
 #include <algorithm>
 #include <map>
 
+#if not USE_FFMPEG
 #include <taglib/fileref.h>
 #include <taglib/tag.h>
 #include <taglib/id3v2tag.h>
 #include <taglib/mpegfile.h>
+#endif
 
 #include <fplib/FingerprintExtractor.h>
 
@@ -167,6 +169,44 @@ void getFileInfo( const string& fileName, map<string, string>& urlParams, bool d
    //////////////////////////////////////////////////////////////////////////
    // ID3
 
+#if USE_FFMPEG
+   try
+   {
+        LAV_Source lavSource;
+        lavSource.init(fileName);
+        string val;
+
+        // artist
+        lavSource.getTag("artist", val);
+        addEntry( urlParams, "artist", val);
+
+        // album
+        lavSource.getTag("album", val);
+        addEntry( urlParams, "album", val);
+
+        // title
+        lavSource.getTag("title", val);
+        addEntry( urlParams, "track", val);
+
+        // track num
+        if ( lavSource.getTag("track", val) )
+            addEntry( urlParams, "tracknum", val);
+
+        // year
+        if ( lavSource.getTag("date", val) )
+            addEntry( urlParams, "year", val);
+
+        // genre
+        lavSource.getTag("genre", val);
+        addEntry( urlParams, "genre", val);
+
+        lavSource.release();
+    }
+   catch (const std::exception&)
+   {
+       cerr << "WARNING: Ffmpeg could not extract tag information!" << endl;
+   }
+#else
    try
    {
       TagLib::MPEG::File f(fileName.c_str());
@@ -199,6 +239,7 @@ void getFileInfo( const string& fileName, map<string, string>& urlParams, bool d
    {
       cerr << "WARNING: Taglib could not extract any information!" << endl;
    }
+#endif
 }
 
 // -----------------------------------------------------------------------------
