@@ -22,6 +22,8 @@
 * See also http://www.cs.cmu.edu/~yke/musicretrieval/                      *
 ***************************************************************************/
 
+#define USE_FFMPEG 1
+
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -36,7 +38,11 @@
 
 #include <fplib/FingerprintExtractor.h>
 
+#if USE_FFMPEG
+#include "LAV_Source.h"
+#else
 #include "MP3_Source.h"
+#endif
 #include "HTTPClient.h"
 #include "Sha256File.h"
 #include "mbid_mp3.h"
@@ -61,6 +67,7 @@ const char HTTP_POST_DATA_NAME[]  = "fpdata";
 // if you want to use the last.fm fingerprint library in your app you'll need
 // your own key
 const char LASTFM_API_KEY[] = "2bfed60da64b96c16ea77adbf5fe1a82";
+
 
 // -----------------------------------------------------------------------------
 // -----------------------------------------------------------------------------
@@ -307,6 +314,7 @@ int main(int argc, char* argv[])
       }
 
       // checks if it is an mp3 (very un-elegant)
+#if not USE_FFMPEG
       size_t filenamelen = mp3FileName.length();
       if ( filenamelen < 5 || mp3FileName.substr(filenamelen-4, 4) != ".mp3" )
       {
@@ -319,6 +327,7 @@ int main(int argc, char* argv[])
             exit(1);
          }
       }
+#endif
    }
 
    // this map holds the parameters that will be put into the URL
@@ -327,9 +336,23 @@ int main(int argc, char* argv[])
    getFileInfo(mp3FileName, urlParams, doTagLib);
 
    int duration, samplerate, bitrate, nchannels;
+#if USE_FFMPEG
+   LAV_Source mp3Source;
+   try
+   {
+      mp3Source.init(mp3FileName);
+   }
+   catch (const std::exception& e)
+   {
+      cerr << "ERROR: " << e.what() << endl;
+      exit(1);
+   }
+   mp3Source.getInfo(mp3FileName, duration, samplerate, bitrate, nchannels);
+#else
    MP3_Source::getInfo(mp3FileName, duration, samplerate, bitrate, nchannels);
+#endif
 
-   if ( static_cast<size_t>(duration * 1000) < fingerprint::FingerprintExtractor::getMinimumDurationMs() )
+   if ( duration < 0 || static_cast<size_t>(duration * 1000) < fingerprint::FingerprintExtractor::getMinimumDurationMs() )
    {
       cerr << "ERROR: Song duration is " << duration 
            << "s! Minimum required is: " 
@@ -337,6 +360,7 @@ int main(int argc, char* argv[])
            << "s" << endl;
       exit(1);
    }
+   fprintf(stderr, "duration: %d secs, samplerate: %d, bitrate: %d b/s, nchannels: %d\n", duration, samplerate, bitrate, nchannels);
 
    // WARNING!!! This is absolutely mandatory!
    // If you don't specify the right duration you will not get the correct result!
@@ -358,14 +382,18 @@ int main(int argc, char* argv[])
    urlParams["fpversion"]  = toString( version ); 
 
    // that's for the mp3
+#if not USE_FFMPEG
    MP3_Source mp3Source;
+#endif
    // the buffer can be any size, but FingerprintExtractor is happier (read: faster) with 2^x
    const size_t PCMBufSize = 131072; 
    short* pPCMBuffer = new short[PCMBufSize];
 
    try
    {
+#if not USE_FFMPEG
       mp3Source.init(mp3FileName);
+#endif
       mp3Source.skipSilence();
 
       //////////////////////////////////////////////////////////////////////////      
