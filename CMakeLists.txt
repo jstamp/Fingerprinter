@@ -20,7 +20,7 @@ IF(config_file STREQUAL NOTFOUND)
    SET(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
 
    # Library paths paths
-   LINK_DIRECTORIES(${PROJECT_SOURCE_DIR}/lib)
+   LINK_DIRECTORIES(${PROJECT_BINARY_DIR}/lib)
 
    # Release build
    SET(CMAKE_BUILD_TYPE release)
@@ -111,6 +111,12 @@ SET_TARGET_PROPERTIES(fplib_shared
    PROPERTIES OUTPUT_NAME fplib
    )
 
+# Link the library
+TARGET_LINK_LIBRARIES(fplib_shared
+   fftw3f
+   samplerate
+   )
+
 # Install static library
 INSTALL(TARGETS fplib_static
    ARCHIVE DESTINATION lib
@@ -140,11 +146,9 @@ ADD_EXECUTABLE(lastfm-fpclient
 # Link the executable
 TARGET_LINK_LIBRARIES(lastfm-fpclient
    fplib
-   fftw3f
    mad
    tag
    curl
-   samplerate
    )
 
 # Install the executable
