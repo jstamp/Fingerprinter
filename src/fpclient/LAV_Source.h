@@ -30,6 +30,7 @@ public:
     ~LAV_Source();
 
     void getInfo(const string& fileName, int& lengthSecs, int& samplerate, int& bitrate, int& nchannels);
+    bool getTag( const string& tag, string& val);
     void init(const string& fileName);
     void release();
 

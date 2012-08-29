@@ -62,6 +62,7 @@ public:
         , resampleContext(NULL)
 #endif
         , streamIndex(-1)
+        , tags(NULL)
         , duration(0)
         , bitrate(0)
         , eof(false)
@@ -78,6 +79,7 @@ public:
     AVAudioResampleContext *resampleContext;
 #endif
     int streamIndex;
+    AVDictionary *tags;
     int duration;
     int bitrate;
     bool eof;
@@ -352,6 +354,14 @@ void LAV_Source::init(const string& fileName)
         d->bitrate = d->inCodecContext->bit_rate;
     }
 
+    /* print all the tags
+    AVDictionaryEntry *tag=NULL;
+    while((tag=av_dict_get(d->inFormatContext->metadata, "", tag, AV_DICT_IGNORE_SUFFIX)))
+    {
+        av_dict_set(&d->tags, tag->key, tag->value, 0);
+        cout << "tag: '" << tag->key << "' '" << tag->value << "'" << endl;
+    }*/
+
 #if !defined(HAVE_SWRESAMPLE) && !defined(HAVE_AVRESAMPLE)
     if (d->inCodecContext->sample_fmt != outSampleFmt
         || d->inCodecContext->channels < 1
@@ -380,6 +390,19 @@ void LAV_Source::getInfo(const string& fileName, int& lengthSecs, int& samplerat
 }
 
 
+bool LAV_Source::getTag( const string& tag, string& val)
+{
+    AVDictionaryEntry *entry = av_dict_get(d->inFormatContext->metadata, tag.c_str(), NULL, AV_DICT_IGNORE_SUFFIX);
+    if ( entry )
+    {
+        val = entry->value;
+        return true;
+    }
+    val = string();
+    return false;
+}
+
+
 void LAV_Source::release()
 {
     if ( d->inCodecContext && d->inCodecContext->codec_id != CODEC_ID_NONE )
@@ -398,6 +421,8 @@ void LAV_Source::release()
         avresample_free(&d->resampleContext);
 #endif
     }
+    av_dict_free(&d->tags);
+    d->tags = NULL;
     d->inCodecContext = NULL;
     d->inFormatContext = NULL;
     d->streamIndex = -1;
