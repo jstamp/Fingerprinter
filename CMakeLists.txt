@@ -8,6 +8,20 @@ INCLUDE(config.cmake OPTIONAL
    RESULT_VARIABLE config_file
    )
 
+find_package(PkgConfig)
+pkg_check_modules(AVFORMAT libavformat)
+pkg_check_modules(SWRESAMPLE libswresample)
+
+if (SWRESAMPLE_FOUND)
+    add_definitions( -DHAVE_SWRESAMPLE )
+else()
+    pkg_check_modules(AVRESAMPLE libavresample)
+    if (AVRESAMPLE_FOUND)
+        add_definitions( -DHAVE_AVRESAMPLE )
+    endif()
+endif()
+
+
 # Add this libraries include path
 INCLUDE_DIRECTORIES(include)
 
@@ -139,6 +153,7 @@ ADD_EXECUTABLE(lastfm-fpclient
    src/fpclient/main.cpp
    src/fpclient/HTTPClient.cpp
    src/fpclient/MP3_Source.cpp
+   src/fpclient/LAV_Source.cpp
    src/fpclient/Sha256.cpp
    src/fpclient/Sha256File.cpp
    )
@@ -149,6 +164,9 @@ TARGET_LINK_LIBRARIES(lastfm-fpclient
    mad
    tag
    curl
+   ${AVFORMAT_LIBRARIES}
+   ${SWRESAMPLE_LIBRARIES}
+   ${AVRESAMPLE_LIBRARIES}
    )
 
 # Install the executable
