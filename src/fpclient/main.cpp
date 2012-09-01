@@ -305,6 +305,7 @@ int main(int argc, char* argv[])
    //////////////////////////////////////////////////////////////////////////
    
    {
+#if not USE_FFMPEG
       // check if it exists
       ifstream checkFile(mp3FileName.c_str(), ios::binary);
       if ( !checkFile.is_open() )
@@ -314,7 +315,6 @@ int main(int argc, char* argv[])
       }
 
       // checks if it is an mp3 (very un-elegant)
-#if not USE_FFMPEG
       size_t filenamelen = mp3FileName.length();
       if ( filenamelen < 5 || mp3FileName.substr(filenamelen-4, 4) != ".mp3" )
       {
